@@ -1,0 +1,110 @@
+/*rexx*/
+ VARIABLES =  'DSNI MEM LDSI MIG_FILE1  DSNINP'
+ ADDRESS ISPEXEC
+ ISPEXEC CONTROL DISPLAY REFRESH
+"ISPEXEC LIBDEF ISPPLIB DATASET ID ('Z82721.CLIST')"
+DO FOREVER
+ "ISPEXEC VERASE (DSN,MEM,LDS) PROFILE";
+ "ISPEXEC DISPLAY PANEL (JCLTOOL)"
+  CALL SUB
+  "ISPEXEC VGET (DSN,LDS) PROFILE";
+  PARSE UPPER VAR dsn dsni
+  PARSE UPPER VAR lds ldsi
+  QPOS = VERIFY(DSNi,"'","M",1)
+  /*trace('?ir')*/
+  if qpos > 0 then  do
+     qpose = VERIFY(DSNi,"'","M",qpos+1)
+      dsnlen = qpose-qpos
+      dsni = substr(dsni,qpos+1,dsnlen-1)
+  end
+  else do
+     DSNI = CONCATUSR(DSNI)
+  end
+  opos = VERIFY(ldsi,"'","M",1)
+   /*trace('?ir')*/
+   if opos > 0 then do
+      opose = VERIFY(ldsi,"'","M",opos+1)
+      oposl =  opose-opos
+      ldsi = substr(ldsi,opos+1,oposl-1)
+      /*LDSI = CONCATUSR(LDSI)*/
+   end
+   else do
+      LDSI = CONCATUSR(LDSI)
+  end
+   PARSE VAR DSNI DSNINP "(" MEM ")"
+   /*trace('?ir')*/
+ IF DSNI = "" | MEM = ""  | LDSI = "" THEN DO
+    ZEDLMSG ='INVALID INPUTS'
+    ADDRESS ISPEXEC "SETMSG MSG(ISRZ000)"
+ END
+ ELSE  DO
+       RC=dsncheck()
+       IF RC = 'OK' THEN DO
+          /*TRACE('?IR')*/
+          HQPOS = POS(USERID(),LDSI)
+          IF HQPOS = 1 THEN DO
+          SUBRC = ALLOCDSN(LDSI)
+          SUBRC = JCLANALYSE(MIG_FILE1)
+          END
+          ELSE DO
+               ZEDLMSG = "INVALID" LDSI
+                " ISPEXEC DISPLAY PANEL(JCLTOOL) MSG(ISRZ001)"
+          END
+          ZEDLMSG=' '
+END
+END
+END
+SUB:
+"ISPEXEC VGET (ZPFKEY) ASIS"
+IF ZPFKEY = "PF03" THEN
+   EXIT RC
+IF ZPFKEY = "PF04" THEN DO
+   /*MIG_FILE1= dsncheck()*/
+   SUBRC =  JCLANALYSE(MIG_FILE1)
+  END
+RETURN
+DSNCHECK: PROCEDURE EXPOSE(VARIABLES)
+          MIG_FILE1 = dsninp"("MEM")"
+           CHKLIB = SYSDSN("'"MIG_FILE1"'")
+           IF CHKLIB <> 'OK' THEN DO /* DATA SET NOT FOUND */
+             ZEDLMSG = "FILE" DSNI "NOT FOUND"
+              " ISPEXEC DISPLAY PANEL(JCLTOOL) MSG(ISRZ001)"
+           END
+  return  CHKLIB
+JCLANALYSE: PROCEDURE EXPOSE(VARIABLES)
+     ARG MIG_FILE1
+          ADDRESS ISPEXEC"VPUT (LDSI,MEM) SHARED "
+          ADDRESS ISPEXEC "VIEW DATASET('"MIG_FILE1"')MACRO(JEM2)"
+               ZEDLMSG = 'JCL ANALYZATION HAS BEEN COMPLETED'
+              " ISPEXEC DISPLAY PANEL(JCLTOOL) MSG(ISRZ001)"
+RETURN(0)
+ALLOCDSN : PROCEDURE EXPOSE(VARIABLES)
+      /*TRACE('?IR')*/
+     ARG LDSI
+     RC = SYSDSN("'"LDSI"'")
+     IF RC <> 'OK' THEN DO
+       ADDRESS TSO  "FREE FI(OUTFILE)"
+       ADDRESS TSO  "ALLOC F(OUTFILE) DSN('"LDSI"') ,
+       DSORG(PO) RECFM(F B)LRECL(500) VOLUME(VPWRKE) BLKSIZE(10000),
+       space(10,5) CYLINDER dir(10) NEW "
+     END
+   RETURN 0
+CONCATUSR: PROCEDURE EXPOSE(VARIABLES)
+      /*TRACE('?IR')*/
+      arg chkstr /*Z82734.VSAM.JCL*/
+      SPOS = VERIFY(CHKSTR,".","M",1)
+      CHKSTR = USERID()"."CHKSTR
+      /*IF SPOS > 0 THEN DO
+         SUSR = SUBSTR(CHKSTR,1,SPOS-1)
+        /*IF SUSR <> USERID() THEN DO
+            CHKSTR = userid()"."CHKSTR
+         END
+         ELSE DO
+           CHKSTR = CHKSTR
+         END*/
+      END
+      ELSE DO
+         CHKSTR = USERID()"."CHKSTR
+      END */
+  RETURN CHKSTR
+

@@ -1,0 +1,44 @@
+)ATTR
+% TYPE (TEXT) INTENS (LOW) SKIP (ON) CAPS (ON) COLOR (TURQ)
++ TYPE (TEXT) INTENS (LOW) SKIP (ON) COLOR (GREEN)
+@ TYPE (OUTPUT) COLOR (WHITE) INTENS (HIGH) CAPS (OFF) SKIP (ON)
+# TYPE (NEF)
+)BODY LMSG (ZEDLMSG)
++                          %JCL ANALYZER%
++
++  COMMAND ===> #Z                                                +
++
++
++ ISPF LIBRARY:+
++    PROJECT . . . #PRJI   +
++    GROUP . . . . #GRPI   +. . . #GRPI1  +. . . #GRPI2   +. . . #GRPI3+
++    TYPE  . . . . #TYPI   +
++    MEMBER  . . . #MEMI   +     (BLANK OR PATTERN FOR MEMBER SELECTION+
++                                +LIST, "*" FOR ALL MEMBERS)+
+
++ OTHER PARTITIONED OR SEQUENTIAL DATA SET:+
++    DATA SET NAME . . . #DSN                                    +
++
++ LISTING DATA SET . . . #LDS                                         +
++
++
++
++
++
++
++                      +@ZEDLMSG
+)INIT
+.ZVARS = '(ZCMD)'
+.MSG = ISRZ001
+
+)REINIT
+REFRESH(*)
+)PROC
+ VER(&DSN,NONBLANK)
+ VER(&LDS,NONBLANK)
+ VPUT(DSN,LDS) PROFILE
+ VGET(DSN,LDS) PROFILE
+)END
++
+
+
